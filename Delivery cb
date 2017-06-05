@@ -1,7 +1,4 @@
-librdkafka 投递回调，最终调用的是rdkafka.c 中的：
-注意： 投递回调使用的还是一个进程中的kafka句柄线程rd_kafka_t，即向broker发送消息的主线程       
-      rd_kafka_t *rd_kafka_new
-        
+       
 /**
  * rd_kafka_poll() (and similar) op callback handler.
  * Will either call registered callback depending on cb_type and op type
@@ -14,7 +11,9 @@ librdkafka 投递回调，最终调用的是rdkafka.c 中的：
 int rd_kafka_poll_cb (rd_kafka_t *rk, rd_kafka_op_t *rko,
                       int cb_type, void *opaque) { ... }
                       
-    /** 方法中 2198 - 2236行 **/                     
+    /** 上述方法中 2198 - 2236行 **/    
+    /** RD_KAFKA_OP_DR 在 rdkafka_op.h 中有枚举定义 ：	RD_KAFKA_OP_DR //Kafka thread -> Application **/
+    
   	case RD_KAFKA_OP_DR:
 		/* Delivery report:
 		 * call application DR callback for each message. */
