@@ -1,0 +1,58 @@
+librdkafka 投递回调，最终调用的是rdkafka.c 中的：
+注意： 投递回调使用的还是一个进程中的kafka句柄线程rd_kafka_t，即向broker发送消息的主线程       
+      rd_kafka_t *rd_kafka_new
+        
+/**
+ * rd_kafka_poll() (and similar) op callback handler.
+ * Will either call registered callback depending on cb_type and op type
+ * or return op to application, if applicable (e.g., fetch message).
+ *
+ * Returns 1 if op was handled, else 0.
+ *
+ * Locality: application thread
+ */
+int rd_kafka_poll_cb (rd_kafka_t *rk, rd_kafka_op_t *rko,
+                      int cb_type, void *opaque) { ... }
+                      
+    /** 方法中 2198 - 2236行 **/                     
+  	case RD_KAFKA_OP_DR:
+		/* Delivery report:
+		 * call application DR callback for each message. */
+		while ((rkm = TAILQ_FIRST(&rko->rko_u.dr.msgq.rkmq_msgs))) {
+			TAILQ_REMOVE(&rko->rko_u.dr.msgq.rkmq_msgs,
+				     rkm, rkm_link);
+
+			dcnt++;
+
+                        if (rk->rk_conf.dr_msg_cb) {
+				rkm->rkm_rkmessage.err = rko->rko_err;
+				if (!rkm->rkm_rkmessage.rkt)
+					rkm->rkm_rkmessage.rkt =
+                                                rd_kafka_topic_keep_a(
+							rd_kafka_topic_s2i(
+								rko->rko_u.dr.
+								s_rkt));
+                                rk->rk_conf.dr_msg_cb(rk, &rkm->rkm_rkmessage,
+                                                      rk->rk_conf.opaque);
+
+                        } else {
+
+                                rk->rk_conf.dr_cb(rk,
+                                                  rkm->rkm_payload,
+                                                  rkm->rkm_len,
+                                                  rko->rko_err,
+                                                  rk->rk_conf.opaque,
+                                                  rkm->rkm_opaque);
+                        }
+
+			rd_kafka_msg_destroy(rk, rkm);
+		}
+
+		rd_kafka_msgq_init(&rko->rko_u.dr.msgq);
+
+		if (!(dcnt % 1000))
+			rd_kafka_dbg(rk, MSG, "POLL",
+				     "Now %i messages delivered to app", dcnt);
+		break;                  
+        
+        
