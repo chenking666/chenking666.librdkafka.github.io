@@ -1,0 +1,59 @@
+调用producer的方法：
+主线程向队列中添加消息；发送线程异步发送
+
+1. 第一步, 创建producer对象：
+RdKafka::Producer *RdKafka::Producer::create (RdKafka::Conf *conf,
+                                              std::string &errstr);
+此方法中最重要的一步是异步线程的创建，ProducerImpl.cpp 78行:
+rk = rd_kafka_new(RD_KAFKA_PRODUCER, rk_conf,
+                          errbuf, sizeof(errbuf));
+
+ ---->调用 
+rdkafka.c 1261行:
+/* Create handler thread 创建轮训向broker发送消息的主线程 */
+if ((thrd_create(&rk->rk_thread,
+			 rd_kafka_thread_main, rk)) != thrd_succes)
+
+
+
+2. 第二步，调用producer->produce()方法：
+ProducerImpl.cpp 91行:
+RdKafka::ErrorCode RdKafka::ProducerImpl::produce (RdKafka::Topic *topic,
+                                                   int32_t partition,
+                                                   int msgflags,
+                                                   void *payload, size_t len,
+                                                   const std::string *key,
+                                                   void *msg_opaque);
+ ---->调用 
+
+rdkafka_msg.c 201行:
+int rd_kafka_msg_new (rd_kafka_itopic_t *rkt, int32_t force_partition,
+		      int msgflags,
+		      char *payload, size_t len,
+		      const void *key, size_t keylen,
+		      void *msg_opaque);
+ 
+此方法主要干了三件事：
+a.创建并初始化msg对象:
+  /* Create message */
+  rkm = rd_kafka_msg_new0();
+
+b.检测topic存在信息，设置消息最终要发送的分区、放入发送队列中：
+  /* Partition the message */
+	err = rd_kafka_msg_partitioner(rkt, rkm, 1);
+	 ---->
+	/* Partition is available: enqueue msg on partition's queue */
+	rd_kafka_toppar_enq_msg(rktp_new, rkm);
+
+c.销毁msg对象
+ rd_kafka_msg_destroy(rkt->rkt_rk, rkm);
+ 
+ 
+3. 第三步，异步向broker发送消息的线程，调用 
+ 
+ /**
+ * Send queued messages to broker
+ *
+ * Locality: io thread
+ */
+int rd_kafka_send 
