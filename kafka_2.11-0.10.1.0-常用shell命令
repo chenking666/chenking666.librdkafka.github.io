@@ -1,0 +1,58 @@
+常用的shell命令：
+
+查看指定brokerList的Topic的消费位移情况：
+ 最大位移：
+ ./kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list 10.161.24.240:8094 --topic test --time -1
+ 最小位移：
+ ./kafka-run-class.sh kafka.tools.GetOffsetShell --broker-list 10.161.24.240:8094 --topic test --time -2
+
+查看已拥有的消费组：
+ ./kafka-run-class.sh kafka.admin.ConsumerGroupCommand --zookeeper 10.161.24.240:2191  --list
+或者
+ ./kafka-consumer-groups.sh --zookeeper 10.161.24.240:2191  --list
+ 
+查看消费组的详细情况：
+ ./kafka-run-class.sh kafka.admin.ConsumerGroupCommand --zookeeper 10.161.24.240:2191 --group test-group12321  --describe
+
+查看topic的信息：
+ ./kafka-topics.sh --describe --zookeeper 10.161.24.240:2191 --topic test 
+ 
+topic 分区扩容:
+ ./kafka-topics.sh --zookeeper 10.161.24.240:2191 -alter --partitions 20 --topic test 
+
+删除topic：在执行这条命令前，注意server.properties文件中的 delete.topic.enable = true
+ ./kafka-topics.sh --delete --zookeeper 10.161.24.240:2191 --topic test
+
+查看kafka发送性能:
+ ./kafka-producer-perf-test.sh --topic test --num-records 1 --record-size 100 --producer-props bootstrap.servers=10.161.24.240:8094 --throughput=100
+
+进行消费: 新版本kafka想用bootstrap-server（即brokerList）取代zk
+./kafka-console-consumer.sh --bootstrap-server 10.161.24.240:8094 --topic testgroup --partition 0 --from-beginning
+
+生产消息
+./kafka-console-producer.sh --broker-list 10.161.24.240:8094 -topic test
+
+查看consumer组内消费的offset  
+./kafka-run-class.sh kafka.tools.ConsumerOffsetChecker --zookeeper 10.161.24.240:2191 --group test --topic test
+
+创建topic
+./kafka-topics.sh --create --zookeeper 10.161.24.240:2191,10.161.24.240:2192,10.161.24.240:2193 --replication-factor 3 --partitions 10 --topic chenxTest
+./kafka-topics.sh --create --zookeeper 10.161.24.240:2191,10.161.24.240:2192,10.161.24.240:2193 --replication-factor 2 --partitions 1 --topic chenxTestss
+
+kafka启动、停止命令:
+./kafka-server-start.sh config/server-00.properties &
+./kafka-server-start.sh config/server-01.properties &
+./kafka-server-start.sh config/server-02.properties &
+
+./kafka-server-stop.sh config/server-00.properties &
+./kafka-server-stop.sh config/server-01.properties &
+./kafka-server-stop.sh config/server-02.properties &
+ 
+
+
+
+生产消息
+./kafka-console-producer.sh --broker-list 10.161.24.240:8094 -topic test
+
+消费消息
+./kafka-console-consumer.sh --bootstrap-server 10.161.24.240:8094 --topic test --partition 0 --from-beginning
